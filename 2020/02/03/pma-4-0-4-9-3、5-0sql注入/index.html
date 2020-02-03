@@ -49,7 +49,7 @@
     
     <div class="article-meta">
       <a href="/2020/02/03/pma-4-0-4-9-3%E3%80%815-0sql%E6%B3%A8%E5%85%A5/" class="article-date">
-  <time datetime="2020-02-03T10:41:00.000Z" itemprop="datePublished">2020-02-03</time>
+  <time datetime="2020-02-03T11:13:00.000Z" itemprop="datePublished">2020-02-03</time>
 </a>
       
       
@@ -59,7 +59,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-quill-pen-line"></i>
             <span class="post-meta-item-text"> 字数统计:</span>
-            <span class="post-count">230字</span>
+            <span class="post-count">235字</span>
         </span>
     </span>
 
@@ -93,18 +93,19 @@
 
       
       <p>官方补丁如下：</p>
-<p><img src="%5Cimages%5Cpasted-1.png" alt="upload successful"></p>
+<p><img src="/images/pasted-14.png" alt="upload successful"></p>
 <p>可以看到是对username参数进行转义来进行修复，我们下载pma-4.9.0.1版本。跟进libraries/classes/Server/Privileges.php，在getExtraDataForAjaxBehavior函数line3072-3085里面：</p>
-<p><img src="%5Cimages%5Cpasted-2.png" alt="upload successful"></p>
+<p><img src="/images/pasted-15.png" alt="upload successful"></p>
 <p>这里如果存在validate_username参数的话，会直接从$_GET[‘username’]参数处获得值并直接拼接进sql语句中，然后执行取出结果集，中间不存在任何过滤，因此是存在sql注入的。接下来我们寻找上层调用，在/server_privileges.php处327行发现有该函数调用：</p>
-<p><img src="%5Cimages%5Cpasted-3.png" alt="upload successful"></p>
+<p><img src="/images/pasted-17.png" alt="upload successful"></p>
 <p>然后看看需要经过什么逻辑才会执行到这个地方来，往上回溯，有一层if判断：</p>
-<p><img src="%5Cimages%5Cpasted-4.png" alt="upload successful"></p>
+<p><img src="/images/pasted-18.png" alt="upload successful"></p>
 <p>跟进response-&gt;isAjax的构造方法：</p>
-<p><img src="%5Cimages%5Cpasted-5.png" alt="upload successful"></p>
-<p><img src="%5Cimages%5Cpasted-6.png" alt="upload successful"></p>
+<p><img src="/images/pasted-19.png" alt="upload successful"></p>
+<p><img src="/images/pasted-20.png" alt="upload successful"></p>
 <p>可以看到，当传入的ajax_request参数不为空的时候，才会满足这层if判断，并且是个布尔类型，因此我们任意登陆个前台的pma账号，并构造poc如下：</p>
-<p><img src="%5Cimages%5Cpasted-7.png" alt="upload successful"></p>
+<p><img src="/images/pasted-21.png" alt="upload successful"></p>
+<p>know it then enjoy it~</p>
 
       
       <!-- 打赏 -->
@@ -127,16 +128,6 @@
 
   
   
-  <nav class="article-nav">
-    
-    
-      <a href="/2020/02/03/hello-world/" class="article-nav-link">
-        <strong class="article-nav-caption">下一篇</strong>
-        <div class="article-nav-title">Hello World</div>
-      </a>
-    
-  </nav>
-
 
   
 

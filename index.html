@@ -86,7 +86,7 @@
     
     <div class="article-meta">
       <a href="/2020/02/03/pma-4-0-4-9-3%E3%80%815-0sql%E6%B3%A8%E5%85%A5/" class="article-date">
-  <time datetime="2020-02-03T10:41:00.000Z" itemprop="datePublished">2020-02-03</time>
+  <time datetime="2020-02-03T11:13:00.000Z" itemprop="datePublished">2020-02-03</time>
 </a>
       
       
@@ -105,18 +105,19 @@
 
       
       <p>官方补丁如下：</p>
-<p><img src="%5Cimages%5Cpasted-1.png" alt="upload successful"></p>
+<p><img src="/images/pasted-14.png" alt="upload successful"></p>
 <p>可以看到是对username参数进行转义来进行修复，我们下载pma-4.9.0.1版本。跟进libraries/classes/Server/Privileges.php，在getExtraDataForAjaxBehavior函数line3072-3085里面：</p>
-<p><img src="%5Cimages%5Cpasted-2.png" alt="upload successful"></p>
+<p><img src="/images/pasted-15.png" alt="upload successful"></p>
 <p>这里如果存在validate_username参数的话，会直接从$_GET[‘username’]参数处获得值并直接拼接进sql语句中，然后执行取出结果集，中间不存在任何过滤，因此是存在sql注入的。接下来我们寻找上层调用，在/server_privileges.php处327行发现有该函数调用：</p>
-<p><img src="%5Cimages%5Cpasted-3.png" alt="upload successful"></p>
+<p><img src="/images/pasted-17.png" alt="upload successful"></p>
 <p>然后看看需要经过什么逻辑才会执行到这个地方来，往上回溯，有一层if判断：</p>
-<p><img src="%5Cimages%5Cpasted-4.png" alt="upload successful"></p>
+<p><img src="/images/pasted-18.png" alt="upload successful"></p>
 <p>跟进response-&gt;isAjax的构造方法：</p>
-<p><img src="%5Cimages%5Cpasted-5.png" alt="upload successful"></p>
-<p><img src="%5Cimages%5Cpasted-6.png" alt="upload successful"></p>
+<p><img src="/images/pasted-19.png" alt="upload successful"></p>
+<p><img src="/images/pasted-20.png" alt="upload successful"></p>
 <p>可以看到，当传入的ajax_request参数不为空的时候，才会满足这层if判断，并且是个布尔类型，因此我们任意登陆个前台的pma账号，并构造poc如下：</p>
-<p><img src="%5Cimages%5Cpasted-7.png" alt="upload successful"></p>
+<p><img src="/images/pasted-21.png" alt="upload successful"></p>
+<p>know it then enjoy it~</p>
 
       
       <!-- 打赏 -->
@@ -129,81 +130,6 @@
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" rel="tag">代码审计</a></li></ul>
 
-    </footer>
-
-  </div>
-
-  
-
-  
-  
-  
-
-  
-
-</article>
-    
-    <article id="post-hello-world" class="article article-type-post" itemscope
-  itemprop="blogPost" data-scroll-reveal>
-
-  <div class="article-inner">
-    
-    <header class="article-header">
-       
-<h2 itemprop="name">
-  <a class="article-title" href="/2020/02/03/hello-world/"
-    >Hello World</a
-  >
-</h2>
-  
-
-    </header>
-    
-
-    
-    <div class="article-meta">
-      <a href="/2020/02/03/hello-world/" class="article-date">
-  <time datetime="2020-02-03T03:41:37.663Z" itemprop="datePublished">2020-02-03</time>
-</a>
-      
-      
-      
-      
-    </div>
-    
-
-    
-
-    <div class="article-entry" itemprop="articleBody">
-      
-
-
-      
-
-      
-      <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
-
-      
-      <!-- 打赏 -->
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/03/hello-world/" data-id="ck66bjdto0000o3ttdbokcw1r"
-        class="article-share-link">分享</a>
-        
-      
     </footer>
 
   </div>
