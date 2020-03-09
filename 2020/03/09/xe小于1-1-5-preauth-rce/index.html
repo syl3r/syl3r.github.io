@@ -31,7 +31,7 @@
   <div id="app">
     <main class="content">
       <section class="outer">
-  <article id="post-tp6-6-0-1-任意文件写入与删除" class="article article-type-post" itemscope
+  <article id="post-xe小于1-1-5-preauth-rce" class="article article-type-post" itemscope
   itemprop="blogPost" data-scroll-reveal>
 
   <div class="article-inner">
@@ -39,7 +39,7 @@
     <header class="article-header">
        
 <h1 class="article-title sea-center" style="border-left:0" itemprop="name">
-  tp6&lt;6.0.1 任意文件写入与删除
+  xe小于1.1.5 preauth rce
 </h1>
   
 
@@ -48,12 +48,12 @@
 
     
     <div class="article-meta">
-      <a href="/2020/02/03/tp6-6-0-1-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E5%86%99%E5%85%A5%E4%B8%8E%E5%88%A0%E9%99%A4/" class="article-date">
-  <time datetime="2020-02-03T14:15:00.000Z" itemprop="datePublished">2020-02-03</time>
+      <a href="/2020/03/09/xe%E5%B0%8F%E4%BA%8E1-1-5-preauth-rce/" class="article-date">
+  <time datetime="2020-03-09T07:35:00.000Z" itemprop="datePublished">2020-03-09</time>
 </a>
       
   <div class="article-category">
-    <a class="article-category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E7%A0%94%E7%A9%B6/">漏洞研究</a>
+    <a class="article-category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E6%8C%96%E6%8E%98/">漏洞挖掘</a>
   </div>
 
       
@@ -63,7 +63,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-quill-pen-line"></i>
             <span class="post-meta-item-text"> 字数统计:</span>
-            <span class="post-count">1k字</span>
+            <span class="post-count">1.3k字</span>
         </span>
     </span>
 
@@ -72,7 +72,7 @@
         <span class="post-meta-item-icon">
             <i class="ri-book-open-line"></i>
             <span class="post-meta-item-text"> 阅读时长≈</span>
-            <span class="post-count">4分钟</span>
+            <span class="post-count">5分钟</span>
         </span>
     </span>
 </div>
@@ -98,56 +98,29 @@
       
 
       
-      <h2 id="1-环境搭建："><a href="#1-环境搭建：" class="headerlink" title="1.环境搭建："></a>1.环境搭建：</h2><p>php7版本以上，用composer直接搭建：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">composer create-project topthink&#x2F;think tp6 6.0.*-dev</span><br></pre></td></tr></table></figure>
-<p>用thinkphp内置命令测试：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.&#x2F;think run --host&#x3D;0.0.0.0 --port&#x3D;8000</span><br></pre></td></tr></table></figure>
-<p>开启thinkphp的session选项：<br>/app/middleware.php</p>
-<p><img src="/images/pasted-31.png" alt="upload successful"></p>
-<p>修改session后端逻辑：</p>
-<p><img src="/images/pasted-32.png" alt="upload successful"></p>
-<p>总结：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">在目标环境为Windows且开启session的情况下，容易遭受任意文件删除攻击。</span><br><span class="line">在目标环境开启session且写入的session可控的情况下，容易遭受任意文件写入攻击。</span><br></pre></td></tr></table></figure>
-
-<h2 id="2-漏洞跟踪"><a href="#2-漏洞跟踪" class="headerlink" title="2.漏洞跟踪"></a>2.漏洞跟踪</h2><p>构造poc如下：</p>
-<p><img src="/images/pasted-33.png" alt="upload successful"></p>
-<p><img src="/images/pasted-34.png" alt="upload successful"></p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">GET &#x2F;?a&#x3D;&lt;%3fphp+phpinfo()%3b%3f&gt; HTTP&#x2F;1.1</span><br><span class="line">Host: 192.168.1.103:8000</span><br><span class="line">Cache-Control: max-age&#x3D;0</span><br><span class="line">Upgrade-Insecure-Requests: 1</span><br><span class="line">User-Agent: Mozilla&#x2F;5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit&#x2F;537.36 (KHTML, like Gecko) Chrome&#x2F;79.0.3945.117 Safari&#x2F;537.36</span><br><span class="line">Accept: text&#x2F;html,application&#x2F;xhtml+xml,application&#x2F;xml;q&#x3D;0.9,image&#x2F;webp,image&#x2F;apng,*&#x2F;*;q&#x3D;0.8,application&#x2F;signed-exchange;v&#x3D;b3;q&#x3D;0.9</span><br><span class="line">Accept-Encoding: gzip, deflate</span><br><span class="line">Accept-Language: zh-CN,zh;q&#x3D;0.9,en;q&#x3D;0.8</span><br><span class="line">Cookie: PHPSESSID&#x3D;&#x2F;..&#x2F;..&#x2F;..&#x2F;.&#x2F;.&#x2F;.&#x2F;.&#x2F;.&#x2F;public&#x2F;2.php</span><br><span class="line">Connection: close</span><br></pre></td></tr></table></figure>
-<p>根据官方github的commit：</p>
-<p><img src="/images/pasted-35.png" alt="upload successful"></p>
-<p>确定官方的修复方式是通过限制phpsessionid为数字和字母来进行修复，确定是跟session相关。<br>跟踪session初始化的文件/vendor/topthink/framework/src/think/middleware/SessionInit.php：</p>
-<p><img src="/images/pasted-36.png" alt="upload successful"></p>
-<p>跟进setId函数，在thinkphp的session文件/vendor/topthink/framework/src/think/session/Store.php：</p>
-<p><img src="/images/pasted-37.png" alt="upload successful"></p>
-<p><img src="/images/pasted-38.png" alt="upload successful"></p>
-<p>在setId中，规定了phpsessionid的值长度为32位并且没有任何过滤，然后直接赋值给store::id。<br>接下来，调用init方法对session进行初始化（也就是对session进行反序列化）：</p>
-<p><img src="/images/pasted-39.png" alt="upload successful"></p>
-<p>下面还有个end函数，跟进save方法：</p>
-<p><img src="/images/pasted-41.png" alt="upload successful"></p>
-<p><img src="/images/pasted-42.png" alt="upload successful"></p>
-<p>跟进write函数，很明显存在文件操作的流程。</p>
-<p><img src="/images/pasted-43.png" alt="upload successful"></p>
-<p>跟进getFileName,发现会以sess_为前缀创建文件，并且创建的文件以及文件夹权限为755。</p>
-<p><img src="/images/pasted-44.png" alt="upload successful"></p>
-<p>再跟进writefile函数，就是用file_put_contents写文件。从这里就可以看出我们创建的session文件前缀是以sess开头，并且内容就为我们创建session时传入的内容，文件名即我们的phpsessionid的值。</p>
-<p><img src="/images/pasted-45.png" alt="upload successful"></p>
-<p>然后发送设置的session（即获取到的phpsessionid）到服务端。接下来跟进$response，服务器会将之前获得的session返回给用户。那么问题就来了，在这session初始化的过程中，我们没有看到有文件写入的过程，包括各厂商的预警或者分析里面都没有明确说哪里有文件写入，但是这个漏洞确实是跟文件操作相关的，所以我们现在就需要找到到底是哪一步会存在save，即文件写入操作。</p>
-<p>像这种只能定位到函数点，没有具体的实现功能的地方我们要想得知完整的调用栈，一般来说有2种方法。顺着我们的后端业务逻辑下断点一步一步跟进顺推，或者根据函数寻找上一层调用来逆推。这里，我们采用前一种方法，即顺推，接下来跟进我们构造的后端业务逻辑所调用的函数session：</p>
-<p><img src="/images/pasted-46.png" alt="upload successful"></p>
-<p>最后会用Session::set这个静态函数，跟进该函数：</p>
-<p><img src="/images/pasted-47.png" alt="upload successful"></p>
-<p>再跟进Arr::set，其实最后返回的就是session的数组然后赋值给$this-&gt;data。</p>
-<p><img src="/images/pasted-48.png" alt="upload successful"></p>
-<p>熟悉tp这种mvc框架的都知道，thinkphp的入口文件为/public/index.php，我们很多时候发起的请求都是由/public/index.php自己寻找路由进行逻辑处理，并返回数据的。</p>
-<p><img src="/images/pasted-49.png" alt="upload successful"></p>
-<p>其中，在end函数中，会存在执行中间件和写入的操作。</p>
-<p><img src="/images/pasted-50.png" alt="upload successful"></p>
-<p>再跟进end函数，其中$middleware其实就是SessionInit::class,然后通过make方法执行中间件类的相关方法并返回一个对象，在上面我们知道，SessionInit:class类中就存在save方法，因此文件写入的过程中其实是发生在end函数中，也就是一个结束调度的过程。</p>
-<p><img src="/images/pasted-51.png" alt="upload successful"></p>
-<p><img src="/images/pasted-52.png" alt="upload successful"></p>
-<p>整理一下调用的堆栈：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Store.php:256, think\session\Store-&gt;save()</span><br><span class="line">Manager.php:174, think\Session-&gt;__call()</span><br><span class="line">SessionInit.php:78, think\Session-&gt;save()</span><br><span class="line">SessionInit.php:78, think\middleware\SessionInit-&gt;end()</span><br><span class="line">Middleware.php:165, think\Middleware-&gt;end()</span><br><span class="line">Http.php:279, think\Http-&gt;end()</span><br><span class="line">index.php:24, &#123;main&#125;()</span><br></pre></td></tr></table></figure>
-
+      <p>XE全名xpress engine，是根据LGPL许可的韩国开发的CMS软件，自2009年开始发布，至今一共被下载了2192249次以上。xe可以开发网页、博客等服务，韩国国内多数购物网站、社区网站都是用XE制作的。</p>
+<h3 id="1-漏洞分析："><a href="#1-漏洞分析：" class="headerlink" title="1.漏洞分析："></a>1.漏洞分析：</h3><p>该rce漏洞主要分为3个步骤，目录创建，文件写入，模版包含rce。</p>
+<p>首先我们分析最后rce的点，触发rce的请求为：<a href="http://10.22.6.206:9097/xe/act=dispWidgetInfo&amp;selected_widget=../widgets/content&amp;0=phpinfo()" target="_blank" rel="noopener">http://10.22.6.206:9097/xe/act=dispWidgetInfo&amp;selected_widget=../widgets/content&amp;0=phpinfo()</a>;</p>
+<p>跟进dispWidgetInfo()方法，在/modules/widget/widget.view.php line21，<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/8F96DBFF54B94118987B7C274B2EBB01/2240" alt="upload successful"></p>
+<p>其中，get传入的参数selected_widget会进入到$oWidgetModel-&gt;getWidgetInfo()方法中，跟进该方法，在/modules/widget/widget.model.php line123，首先会通过$this-&gt;getWidgetPath()获得$widget_path，值为./widgets/../widgets/content/，接下来给$xml_file变量赋值，值为./widgets/../widgets/content/conf/info.xml，给$cache_file变量赋值，值为/Applications/MAMP/htdocs/xe/files/cache/widget/../widgets/content.zh-CN.cache.php。<br>然后进入一层if判断，如果$cache_file存在并且$cache_file的修改时间晚于$xml_file的修改时间，就会调用include函数对$cache_file进行包含，然后返回包含的内容，造成rce。<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/D094850AFE5B4455864BC57AD6432EBD/2253" alt="upload successful"></p>
+<p>如果$cache_file不存在就会自动解析之前的$xml_file文件，然后写入内容到$cache_file。<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/2D9CA61F970B41DC8ECBFA348B66A034/2287" alt="upload successful"></p>
+<p>看一下写入$cache_file的内容寻找我们可能可控的点，定位到$widget和$widget_path，因为这两个变量的值是由我们传入的参数控制的，流程上会先将$widget和$widget_path格式化成写入到$cache_file的php代码赋值给$buff，然后继续调用writeFile将$buff写入到$cache_file里面。这样就达成了$cache_file内容可控的目的(虽然写入到$cache_file里面的代码有exit()，但是if条件不成立，所以在包含时会继续执行里面的php代码)。<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/1888DC270DF7464D870824356243DD9E/2285" alt="upload successful"></p>
+<p>通常根据正常的漏洞而言，能写入文件并且文件的内容可控一般就可以getshell了，但对于这个漏洞而言，会在获取到$widget_path后，判断widget_path这个路径是否存在，如果不存在将直接跳过下面所有的执行流程然后return。所以我们还需要寻找可控目录的点，来达到让这个if条件不满足的目的，继续走下面的文件写入流程。<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/1102F67713EC4F9A8A607EC472E5E4BC/2312" alt="upload successful"></p>
+<p>全局搜索，找到一个目录创建的点，接下来我们来跟进这个创建目录的点，在/modules/rss/rss.controller.php triggerRssUrlInsert()方法line43<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/DC42681F97F2442E95B192B6B3B1242F/2330" alt="upload successful"></p>
+<p>$current_module_srl是由我们传入的module_srl参数控制的，所以这个变量是我们可控的，跟进$oRssModel-&gt;getRssModuleConfig()方法，在/modules/rss/rss.model.php line37:<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/85487B764DFB4D0BB1D3FED2EEAB9B82/2336" alt="upload successful"></p>
+<p>跟进$oModuleModel-&gt;getModulePartConfig，在/modules/module/module.model.php line1408<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/2CCD7C174E8D466B87DD68A4D2AE7476/2342" alt="upload successful"></p>
+<p>由可控的参数$module_srl和其他参数组合成的$object_key会进入到$oCacheHandler-&gt;getGroupKey()方法中，跟进该方法，在/classes/cache/CacheHandler.class.php line256<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/972D7416C03648B1A43C49CC2C292356/2349" alt="upload successful"></p>
+<p>当流程走到这里，$this-&gt;keyGroupVersions[$keyGroupName]值为1，不会进入if循环，直接返回一个值cache_group_1:site_and_module:module_part_config:rss_/(可控参数)。回到$oModuleModel-&gt;getModulePartConfig方法中，所以$cache_key为cache_group_1:site_and_module:module_part_config:rss_/(可控参数)。继续往下执行，进入if循环，$cache_key会进入$oCacheHandler-&gt;put()方法，跟进该方法，在/classes/cache/CacheHandler.class.php line175<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/1B5EAF8BEE62441199766F4A861FBDB7/2365" alt="upload successful"></p>
+<p>再跟进$this-&gt;handler-&gt;put()方法，在/classes/cache/CacheFile.class.php line73，会将可控的$key传递进$this-&gt;getCacheFileName()来获取文件的完整缓存路径，然后会调用FileHandler::writeFile()写入php代码到文件内容，那么如果我们传入的参数中本身就包含../或者/这种用来区分文件夹的符号，那么可不可以通过下面的FileHandler::writeFile()成功创建写入文件的同时去创建目录呢？<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/55E052B02B1040378700501B871ED7BF/2370" alt="upload successful"></p>
+<p>跟进FileHandler::writeFile()，在classes/file/FileHandler.class.php line145<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/4756F80B19694236B59D00271B9C0A88/2381" alt="upload successful"></p>
+<p>$cache_file会先进入getRealPath获取完整路径的文件名，在line149 有个makeDir函数，在/classes/file/FileHandler.class.php  line282<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/88BE4BC6FDCC4370BB4BFEE1874E2CDA/2387" alt="upload successful"></p>
+<p>在这里就会调用系统的mkdir函数(所以在windows下不可行)去创建文件目录，从而达到通过调用FileHandler::writeFile()创建目录的目的。<br>整个创建文件目录的调用栈为：<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/542F7F10AAC04B3C93A9AEF116019662/2399" alt="upload successful"></p>
+<p>但是，在利用过程中，还有一个非常坑的坑点，这个程序默认会有一个filter对所有传入的参数进行过滤，这个filter在/classes/context/Context.class.php line1401,假设我们传入的<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/C16776194BFA4D0EBF05441E999D46BB/2453" alt="upload successful"></p>
+<p>我们来动态跟进看看过滤结果，<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/C0DB62CB04C243A898C99F9C4A76B16B/2406" alt="upload successful"></p>
+<p>可以看到，$current_module_srl被过滤成了0，所以后面不会去创建目录，也不会去写入文件，更不会去执行rce。究其原因，是因为进入到如下过滤的代码时。会将返回的result数组置为0。<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/32280DD4C2FD47B99CABA6A5A9349CB4/2413" alt="upload successful"></p>
+<p>但是我们可以去利用上面的一层判断来跳过这个if循环，当传入的参数值里含有&lt;script或者lt;script或者%3cscript时，会通过escape函数对值进行html实体化然后赋值给$result[$k]，并且不对值做任何其他的过滤，从而continue直接return result数组。所以我们传入的payload必须包含&lt;script或者lt;script或者%3cscript，才能跳过下面的if循环，达到参数继续可控的目的。<br><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/20A6D61EE12B4A56B8F7E968B4D35C78/2418" alt="upload successful"></p>
+<p>综上所示，我们rce的流程就是创建目录-&gt;缓存文件写入-&gt;rce。</p>
+<h3 id="2-漏洞利用："><a href="#2-漏洞利用：" class="headerlink" title="2.漏洞利用："></a>2.漏洞利用：</h3><p><img src="https://note.youdao.com/yws/public/resource/638df19551e1f35e07023bd7f5bdd7c1/xmlnote/ADFB2663B3E3497D805F47BC2594BD84/2456" alt="upload successful"></p>
 <p>know it then enjoy it~</p>
 
       
@@ -159,7 +132,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/03/tp6-6-0-1-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E5%86%99%E5%85%A5%E4%B8%8E%E5%88%A0%E9%99%A4/" data-id="ck7k68uh700071ntth7ky17mf"
+      <a data-url="http://yoursite.com/2020/03/09/xe%E5%B0%8F%E4%BA%8E1-1-5-preauth-rce/" data-id="ck7k68uh800081nttatj95p3v"
         class="article-share-link">分享</a>
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/php/" rel="tag">php</a></li></ul>
@@ -172,19 +145,10 @@
   
   <nav class="article-nav">
     
+    
       <a href="/2020/02/11/onethink-%E7%99%BB%E9%99%86%E7%BB%95%E8%BF%87/" class="article-nav-link">
-        <strong class="article-nav-caption">上一篇</strong>
-        <div class="article-nav-title">
-          
-            onethink 登陆绕过
-          
-        </div>
-      </a>
-    
-    
-      <a href="/2020/02/03/CVE-2019-10758-mongo-express-rce%E5%88%86%E6%9E%90/" class="article-nav-link">
         <strong class="article-nav-caption">下一篇</strong>
-        <div class="article-nav-title">CVE-2019-10758 mongo-express rce分析</div>
+        <div class="article-nav-title">onethink 登陆绕过</div>
       </a>
     
   </nav>
