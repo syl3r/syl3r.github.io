@@ -63,6 +63,95 @@
     
     
     
+    <article id="post-cve-2020-1938-tomcat任意文件读取or包含-任意文件读取分析" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h2 itemprop="name">
+  <a class="article-title" href="/2020/03/09/cve-2020-1938-tomcat%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96or%E5%8C%85%E5%90%AB-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96%E5%88%86%E6%9E%90/"
+    >cve-2020-1938 tomcat任意文件读取or包含(任意文件读取分析)</a
+  >
+</h2>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2020/03/09/cve-2020-1938-tomcat%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96or%E5%8C%85%E5%90%AB-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96%E5%88%86%E6%9E%90/" class="article-date">
+  <time datetime="2020-03-09T08:01:00.000Z" itemprop="datePublished">2020-03-09</time>
+</a>
+      
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%BC%8F%E6%B4%9E%E7%A0%94%E7%A9%B6/">漏洞研究</a>
+  </div>
+
+      
+      
+      
+    </div>
+    
+
+    
+
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <p>昨天下午，偶然在某群看到了cnvd的官网通告，知道了这个漏洞，当时还在和朋友戏言别又是nginx rce那种水洞，但直到了晚上安恒的初步分析文出来后，才确定这个漏洞可以在默认配置的tomcat环境下实现任意文件读取，也可以结合文件上传进行rce来getshell。并且影响版本范围比较大，在fofa上用dork protocol=”ajp”可以发现大概有40多w的网站受到影响。于是，一等exp公布到手，便开始了漫漫的调试的过程。在调试之前，我们先思考三个问题：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">1.文件读取和包含是否有目录限制，能否跨目录读取或者包含任意后缀的文件</span><br><span class="line">2.以前对文件包含漏洞的理解和接触更多是php，java的文件包含漏洞实现原理和过程是怎样的</span><br><span class="line">3.servlet的映射流程是怎样的</span><br></pre></td></tr></table></figure>
+<p>接下来，我们从两个不同的漏洞利用方法分别来说明这三个问题。</p>
+<h3 id="0x01-任意文件读取"><a href="#0x01-任意文件读取" class="headerlink" title="0x01  任意文件读取"></a>0x01  任意文件读取</h3><p>通过idea启动tomcat，并运行exp，下断点，程序会先进入/org/apache/coyote/ajp/AjpProtocol.class createProcessor方法，进行进程初始化，其中processor.tmpMB，processor.bodyMessage值都为null<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/E304C6782A8849309205F7F36EF41F98/1976" alt="upload successful"></p>
+<p><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/4986A5090612475CBB114B86B6A1DC11/1986" alt="upload successful"></p>
+<p>接下来进入ajp协议的socket连接初始化过程，然后按照流程进入值得我们关注的方法-prepareRequest()，该方法为ajp设置发送请求报文及格式的方法，在/org/apache/coyote/ajp/AbstractAjpProcessor.class line469，会根据attributeCode的值的情况会请求的不同属性设置<br>不同的值。跟进attributeCode值为10的情况会将读this.tmpMB缓冲区两次的值分别赋予n,v变量。并且会根据n值是否等于AJP_LOCAL_ADDR、AJP_REMTE_PORT、AJP_SSL_PROTOCOL去依次给请求不同属性的值设置成v。如果n值均不等于上面3个值，那会通过this.request.setAttribute将n的值赋予请求属性，属性的值设置成v。因此，这里n,v其实可以理解为变量名和变量名的值。让我们看看poc，我们可控的3个属性分别是什么：<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/10C7590F50D54BA8B7A22B519E8A5EF7/2012" alt="upload successful"></p>
+<p>很明显，这里其实就给请求依次赋予了javax.servlet.include.request_uri、javax.servlet.include.path_info、javax.servlet.include.servlet_path的属性，并且值为/、/web-inf/web.xml、/，所以这里就是我们的可控点，属性名和属性值均可以完全控制，所以我们可以通过控制这3个属性的值去发送相应的ajp请求。<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/9563EC9675F2485597000613E8DB872C/2024" alt="upload successful"></p>
+<p><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/47149F3FB3874F7989003679839EC93D/2026" alt="upload successful"></p>
+<p>接下来进入到parseHost获取到host为localhost，会进入到this.adapter.service对请求进行封装，在/org/apache/coyote/ajp/AjpProcessor.class line 128:<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/94999AA616D044908ADCE313588B6DEB/2036" alt="upload successful"></p>
+<p>跟进adapter.sevice()：<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/285634EC31514DF7B7E3DD44C1BFDB97/2040" alt="upload successful"></p>
+<p>跟进org.apache.catalina.connector.Request,其实该类实现的 HttpServletRequest 接口，而HttpServletRequest接口继承的ServletRequest接口。所以这里的service方法会对request进行servlet的映射。我们访问的url为/asdf，根据servlet的映射规则/asdf为静态资源，在除了特殊配制的情况下一般都会去到defalutservlet进行请求处理。<br>defalutservlet的包名在web.xml中<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/4B3B55C7251845898959D1F822EF16ED/2057" alt="upload successful"></p>
+<p>跟进org.apache.catalina.servlets.DefaultServlet，并且请求的方式为get方式，所以关注doGet()方法<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/A981B8E734864BE99FA8A970BC248EF9/2063" alt="upload successful"></p>
+<p>再跟进this.serveResource，path变量通过 this.getRelativePath获取：<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/A5D4997059AB4B1DA4AC0E9EC2C0B155/2065" alt="upload successful"></p>
+<p>this.getRelativePath会将javax.servlet.include.servlet_path和javax.servlet.include.path_info的值拼接在一起作为path。最终组合成WEB-INF/web.xml/。<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/4379E15BABDA4BC4BC44B309636D257B/2068" alt="upload successful"></p>
+<p><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/DC9F9A8E2EE9439188182A62596BDF08/2072" alt="upload successful"></p>
+<p>接下来path走进this.resources.lookupCache，熟悉tomcat的可以知道，这是tomcat defaultservlet处理静态资源采用的缓存机制。服务端通过resource.lookupCache(path)从服务端缓存中读取资源（仅限于web应用）获得CacheEntry，如果请求资源不存在CacheEntry.exists为false，则返回404。<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/3903392FE56C4322BAD84C864BFE6D0A/2108" alt="upload successful"></p>
+<p>接下来会走进this.copy对返回的内容进行io流读文件操作，将获取的文件内容读出来显示在浏览器上。<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/632D8592D1234705AFDB70E0E615944D/2091" alt="upload successful"></p>
+<p>跟进copy函数，典型的文件io流操作。<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/1AE41492FD7F4304B5F078E15AF7217D/2096" alt="upload successful"></p>
+<p>这就是整个将/web-INF/web.xml读取出来的过程。刚才经过分析我们得知，path是由javax.servlet.include.servlet_path和javax.servlet.include.path_info的值拼接在一起组合而成，那么我们这里把javax.servlet.include.servlet_path改为../../../../../../../../，把javax.servlet.include.path_info改为etc/passwd试试，看能不能跨目录读取到内容。<br>一路跟进，一直走到getRelativePath返回的值都为../../../../../../../../../../../../etc/passwd<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/C51674DCE1D24B2788EE08BB2D984781/2105" alt="upload successful"></p>
+<p>但是走到this.resources.lookupCache时，Cache entry.Exists=false，然后就会抛出500异常。因为this.resources.lookupCache就限定了读取的静态资源文件必须为web应用目录下的，所以无法通过../去跨目录。<br><img src="https://note.youdao.com/yws/public/resource/7dc20075875339b448eb4a54a6ced173/xmlnote/D871CF43672D4C29A1F38522E5F837EE/2117" alt="upload successful"></p>
+<p>综上，任意文件读取的流程为：</p>
+<p><code>设置ajp请求属性-&gt;通过n,v设置请求属性和属性的值-&gt;请求静态资源文件，进入defalutservlet映射-&gt;拼接path-&gt;通过this.resources.lookupCache获得读取的文件缓存-&gt;发送get请求-&gt;文件读取，如有获取文件内容，则通过io流读取静态资源内容</code></p>
+
+      
+      <!-- 打赏 -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://yoursite.com/2020/03/09/cve-2020-1938-tomcat%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96or%E5%8C%85%E5%90%AB-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E8%AF%BB%E5%8F%96%E5%88%86%E6%9E%90/" data-id="ck7k6upqq0002edttg0w9779w"
+        class="article-share-link">分享</a>
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/java/" rel="tag">java</a></li></ul>
+
+    </footer>
+
+  </div>
+
+  
+
+  
+  
+  
+
+  
+
+</article>
+    
     <article id="post-xe小于1-1-5-preauth-rce" class="article article-type-post" itemscope
   itemprop="blogPost" data-scroll-reveal>
 
@@ -135,7 +224,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/03/09/xe%E5%B0%8F%E4%BA%8E1-1-5-preauth-rce/" data-id="ck7k6qlr40008crttfy49f38w"
+      <a data-url="http://yoursite.com/2020/03/09/xe%E5%B0%8F%E4%BA%8E1-1-5-preauth-rce/" data-id="ck7k6upr8000cedtt9gkubfxm"
         class="article-share-link">分享</a>
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/php/" rel="tag">php</a></li></ul>
@@ -236,7 +325,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/11/onethink-%E7%99%BB%E9%99%86%E7%BB%95%E8%BF%87/" data-id="ck7k6qlqx0003crtt7xq6difr"
+      <a data-url="http://yoursite.com/2020/02/11/onethink-%E7%99%BB%E9%99%86%E7%BB%95%E8%BF%87/" data-id="ck7k6upr10006edttg66j283r"
         class="article-share-link">分享</a>
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/php/" rel="tag">php</a></li></ul>
@@ -354,7 +443,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/03/tp6-6-0-1-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E5%86%99%E5%85%A5%E4%B8%8E%E5%88%A0%E9%99%A4/" data-id="ck7k6qlr30007crttcpmeh9wa"
+      <a data-url="http://yoursite.com/2020/02/03/tp6-6-0-1-%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E5%86%99%E5%85%A5%E4%B8%8E%E5%88%A0%E9%99%A4/" data-id="ck7k6upr40008edtt5rzm1nlo"
         class="article-share-link">分享</a>
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/php/" rel="tag">php</a></li></ul>
@@ -446,7 +535,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/03/CVE-2019-10758-mongo-express-rce%E5%88%86%E6%9E%90/" data-id="ck7k6qlqv0002crtt4ebogekx"
+      <a data-url="http://yoursite.com/2020/02/03/CVE-2019-10758-mongo-express-rce%E5%88%86%E6%9E%90/" data-id="ck7k6upqc0000edttfepnads7"
         class="article-share-link">分享</a>
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/nodejs/" rel="tag">nodejs</a></li></ul>
@@ -527,7 +616,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://yoursite.com/2020/02/03/pma-4-0-4-9-3%E3%80%815-0sql%E6%B3%A8%E5%85%A5/" data-id="ck7k6qlr10006crtt96tx1u26"
+      <a data-url="http://yoursite.com/2020/02/03/pma-4-0-4-9-3%E3%80%815-0sql%E6%B3%A8%E5%85%A5/" data-id="ck7k6upr30007edtt7gye3kxe"
         class="article-share-link">分享</a>
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" rel="tag">代码审计</a></li></ul>
